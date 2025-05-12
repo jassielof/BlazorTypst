@@ -1,0 +1,63 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+README.md
+LICENSE
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Visual Studio / IDE files
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+.idea/
+*.sln.iml
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Environment files
+.env
+*.env
+
+# Testing files
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+TestResults/
+
+# Development files
+Properties/launchSettings.json
+appsettings.Development.json
+
+# Node.js / Frontend
+node_modules/
+npm-debug.log
+
+# Misc
+**/.DS_Store
+**/.classpath
+**/.project
+**/.settings
+**/*.md
+**/*.swp
+**/*.bak
