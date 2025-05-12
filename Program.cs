@@ -1,10 +1,12 @@
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using MudBlazor.Services;
 using BlazorTypst.Components;
 using BlazorTypst.Components.Account;
 using BlazorTypst.Data;
+
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
