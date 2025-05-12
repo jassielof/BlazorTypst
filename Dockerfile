@@ -17,8 +17,10 @@ WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-# Install Typst only in the runtime image
-RUN apk add --no-cache typst
+# Install Typst and symlink to PATH
+RUN apk add --no-cache xz curl && \
+    curl -fsSL https://typst.community/typst-install/install.sh | sh && \
+    install -Dm755 /root/.typst/bin/typst /usr/local/bin/typst
 
 # Copy published app
 COPY --from=build /app/publish .
