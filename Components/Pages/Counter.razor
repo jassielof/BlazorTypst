@@ -1,18 +1,47 @@
 ﻿@page "/counter"
+@using CliWrap.Buffered;
 
 <PageTitle>Counter</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Counter</MudText>
+<MudText Typo="Typo.h3"
+  GutterBottom="true">Counter</MudText>
 
-<MudText Typo="Typo.body1" Class="mb-4">Current count: @currentCount</MudText>
+<MudText Typo="Typo.body1"
+  Class="mb-4">Current count: @currentCount</MudText>
 
-<MudButton Color="Color.Primary" Variant="Variant.Filled" @onclick="IncrementCount">Click me</MudButton>
+<MudButton Color="Color.Primary"
+  Variant="Variant.Filled"
+  @onclick="IncrementCount">Click me</MudButton>
+
+<MudButton Color="Color.Secondary"
+  Variant="Variant.Filled"
+  Class="ml-2"
+  @onclick="ShowTypstHelp">Show typst --help</MudButton>
+
+<MudText Typo="Typo.body2"
+  Class="mt-4"
+  Style="white-space: pre-wrap;">@typstHelpOutput</MudText>
 
 @code {
-    private int currentCount = 0;
+  private int currentCount = 0;
+  private string typstHelpOutput = string.Empty;
+  private void IncrementCount()
+  {
+    currentCount++;
+  }
 
-    private void IncrementCount()
+  private async Task ShowTypstHelp()
+  {
+    try
     {
-        currentCount++;
+      var result = await CliWrap.Cli.Wrap("typst").WithArguments("--help")
+      .WithValidation(CliWrap.CommandResultValidation.None).ExecuteBufferedAsync();
+
+      typstHelpOutput = result.StandardOutput;
     }
+    catch (Exception e)
+    {
+      typstHelpOutput = $"Error executing command: {e.Message}";
+    }
+  }
 }
