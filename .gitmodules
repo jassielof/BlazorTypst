@@ -1,0 +1,3 @@
+[submodule "typst-install"]
+	path = typst-install
+	url = https://github.com/typst-community/typst-install.git
