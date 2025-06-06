@@ -1,5 +1,8 @@
 ﻿@page "/counter"
 @using CliWrap.Buffered;
+@using System.Text.Json
+@using System.IO
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Counter</PageTitle>
 
@@ -22,9 +25,24 @@
   Class="mt-4"
   Style="white-space: pre-wrap;">@typstHelpOutput</MudText>
 
+<MudButton Color="Color.Tertiary"
+  Variant="Variant.Filled"
+  @onclick="ShowSerializedUserJson">
+  Show serialized user JSON & Compile & Download Report
+</MudButton>
+
+<MudText Typo="Typo.body2"
+  Class="mt-4"
+  Style="white-space: pre-wrap;">@userJson</MudText>
+
 @code {
   private int currentCount = 0;
   private string typstHelpOutput = string.Empty;
+  private string userJson = string.Empty;
+
+  [CascadingParameter]
+  private Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
   private void IncrementCount()
   {
     currentCount++;
@@ -35,13 +53,90 @@
     try
     {
       var result = await CliWrap.Cli.Wrap("typst").WithArguments("--help")
-      .WithValidation(CliWrap.CommandResultValidation.None).ExecuteBufferedAsync();
-
+        .WithValidation(CliWrap.CommandResultValidation.None).ExecuteBufferedAsync();
       typstHelpOutput = result.StandardOutput;
     }
     catch (Exception e)
     {
-      typstHelpOutput = $"Error executing command: {e.Message}";
+      typstHelpOutput = $"Error executing typst --help: {e.Message}";
+    }
+  }
+
+  private async Task ShowSerializedUserJson()
+  {
+    if (AuthenticationStateTask == null)
+    {
+      userJson = "Authentication state is not available.";
+      return;
+    }
+
+    var authState = await AuthenticationStateTask;
+    var user = authState?.User;
+
+    if (user?.Identity != null && user.Identity.IsAuthenticated)
+    {
+      var userInfo = new
+      {
+        Name = user.Identity.Name,
+        Claims = user.Claims.ToDictionary(c => c.Type, c => c.Value)
+      };
+      string currentUserJson = JsonSerializer.Serialize(userInfo, new JsonSerializerOptions
+      {
+        WriteIndented = true
+      });
+
+      var projectRoot = Directory.GetCurrentDirectory();
+      var dataDir = Path.Combine(projectRoot, "Data");
+      Directory.CreateDirectory(dataDir); // Ensure "Data" directory exists
+      var userJsonFilePath = Path.Combine(dataDir, "user.json");
+      var reportTypPath = Path.Combine(dataDir, "report.typ"); // Assuming report.typ is in Data
+      var reportPdfPath = Path.Combine(dataDir, "report.pdf"); // Typst usually outputs PDF in the same dir
+
+      await File.WriteAllTextAsync(userJsonFilePath, currentUserJson);
+      userJson = $"user.json created.\n{currentUserJson}";
+
+      try
+      {
+        var compileResult = await CliWrap.Cli.Wrap("typst")
+          .WithArguments(new[] { "compile", reportTypPath }) // Pass arguments as a collection
+          .WithWorkingDirectory(projectRoot) // Typst needs to find user.json relative to report.typ
+          .WithValidation(CliWrap.CommandResultValidation.None)
+          .ExecuteBufferedAsync();
+
+        if (compileResult.ExitCode == 0)
+        {
+          userJson += "\n\nTypst compilation succeeded.";
+          if (File.Exists(reportPdfPath))
+          {
+            var pdfBytes = await File.ReadAllBytesAsync(reportPdfPath);
+            await JSRuntime.InvokeVoidAsync("downloadFileFromStream", "report.pdf", Convert.ToBase64String(pdfBytes));
+            userJson += "\nReport.pdf download initiated.";
+
+            File.Delete(reportPdfPath); // Delete PDF after download initiated
+            userJson += "\nReport.pdf deleted from server.";
+          }
+          else
+          {
+            userJson += "\nError: report.pdf not found after compilation.";
+          }
+          File.Delete(userJsonFilePath); // Delete user.json
+          userJson += "\nuser.json deleted from server.";
+        }
+        else
+        {
+          userJson += $"\n\nTypst compilation failed:\nStdOut:\n{compileResult.StandardOutput}\nStdErr:\n{compileResult.StandardError}";
+          // Optionally, do not delete user.json if compilation fails, or handle as needed
+          // if (File.Exists(userJsonFilePath)) File.Delete(userJsonFilePath);
+        }
+      }
+      catch (Exception ex)
+      {
+        userJson += $"\n\nError running typst compile: {ex.Message}";
+      }
+    }
+    else
+    {
+      userJson = "User is not authenticated.";
     }
   }
 }
